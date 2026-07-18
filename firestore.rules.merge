@@ -1,0 +1,51 @@
+// ===========================================================================
+// PASTE THESE BLOCKS into your project's existing Firestore rules.
+//
+// Use this when the Firebase project is SHARED with another app (so you can't
+// `firebase deploy`, which would replace the whole ruleset). This adds the
+// church-attendance rules alongside whatever is already there.
+//
+// HOW:
+//   1. Firebase console -> Firestore Database -> Rules.
+//   2. Paste everything between the >>> markers INSIDE the existing
+//        match /databases/{database}/documents { ... }
+//      block — next to the other app's rules, above any final catch-all.
+//   3. Do NOT add another `match /{document=**}` — you'll already have one, and
+//      two isn't allowed. Ours don't need it: Firestore grants access if ANY
+//      matching rule allows it, so an existing catch-all deny won't block these.
+//   4. Publish, then reload /admin.
+//
+// If the other app already defines a function called isChurchAttendanceAdmin
+// (very unlikely), rename ours in both this snippet and firestore.rules.
+// ===========================================================================
+
+// >>> BEGIN church-attendance rules >>>
+
+    function isChurchAttendanceAdmin() {
+      return request.auth != null
+        && exists(/databases/$(database)/documents/church-attendance-admins/$(request.auth.uid));
+    }
+
+    match /church-attendance-members/{memberId} {
+      allow read, write: if isChurchAttendanceAdmin();
+    }
+
+    match /church-attendance-records/{recordId} {
+      allow read: if isChurchAttendanceAdmin();
+      allow write: if false;
+    }
+
+    match /church-attendance-config/{docId} {
+      allow read, write: if isChurchAttendanceAdmin();
+    }
+
+    match /church-attendance-admins/{uid} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow write: if false;
+    }
+
+    match /church-attendance-rate-limits/{key} {
+      allow read, write: if false;
+    }
+
+// <<< END church-attendance rules <<<

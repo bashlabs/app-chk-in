@@ -1,0 +1,31 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isChurchAttendanceAdmin() {
+      return request.auth != null
+        && exists(/databases/$(database)/documents/church-attendance-admins/$(request.auth.uid));
+    }
+
+    match /church-attendance-members/{memberId} {
+      allow read, write: if isChurchAttendanceAdmin();
+    }
+    match /church-attendance-records/{recordId} {
+      allow read: if isChurchAttendanceAdmin();
+      allow write: if false;
+    }
+    match /church-attendance-config/{docId} {
+      allow read, write: if isChurchAttendanceAdmin();
+    }
+    match /church-attendance-admins/{uid} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow write: if false;
+    }
+    match /church-attendance-rate-limits/{key} {
+      allow read, write: if false;
+    }
+
+    // ← your other app's existing rules stay here, untouched
+
+  }
+}

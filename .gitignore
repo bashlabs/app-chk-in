@@ -1,0 +1,17 @@
+node_modules/
+dist/
+dev-dist/
+
+# Real Firebase config and any service-account keys.
+.env
+.env.local
+*serviceAccount*.json
+
+.netlify/
+.firebase/
+firebase-debug.log
+*.log
+
+.DS_Store
+.vscode/
+.idea/

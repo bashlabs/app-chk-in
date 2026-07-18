@@ -1,0 +1,37 @@
+[build]
+  command = "npm run build"
+  publish = "dist"
+  functions = "netlify/functions"
+
+[build.environment]
+  NODE_VERSION = "22"
+
+[functions]
+  node_bundler = "esbuild"
+  # firebase-admin pulls in @grpc/grpc-js, which does dynamic requires and ships
+  # .proto files — esbuild mangles it. Shipping it unbundled is the supported
+  # way to keep it intact.
+  external_node_modules = ["firebase-admin"]
+
+# The functions declare their own routes via `export const config = { path }`,
+# so only the SPA fallback is needed here. It must come last — Netlify matches
+# redirects in order, and /api/* is served by the functions above it.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+    Cache-Control = "no-cache"
+
+[[headers]]
+  for = "/index.html"
+  [headers.values]
+    Cache-Control = "no-cache"
