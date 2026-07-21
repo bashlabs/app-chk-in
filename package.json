@@ -8,7 +8,7 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build && node scripts/check-bundle.mjs",
     "preview": "vite preview",
-    "icons": "node scripts/generate-icons.mjs",
+    "icons": "python3 scripts/generate-icons.py",
     "seed": "node scripts/seed.mjs",
     "deploy:rules": "firebase deploy --only firestore:rules,firestore:indexes",
     "create-admin": "node scripts/create-admin.mjs"

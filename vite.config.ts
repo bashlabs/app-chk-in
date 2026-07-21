@@ -39,7 +39,7 @@ export default defineConfig(({ mode }) => {
         name: 'Church Attendance Check-In',
         short_name: 'Check-In',
         description: 'Sunday service attendance check-in',
-        theme_color: '#4f46e5',
+        theme_color: '#c2410c',
         background_color: '#ffffff',
         display: 'standalone',
         orientation: 'portrait',
