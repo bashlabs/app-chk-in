@@ -24,6 +24,8 @@ type Member = {
   phoneE164: string | null;
 };
 
+const PAGE_SIZE = 25;
+
 export function AdminMembers() {
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
@@ -37,6 +39,8 @@ export function AdminMembers() {
 
   const [csv, setCsv] = useState('');
   const [importing, setImporting] = useState(false);
+
+  const [page, setPage] = useState(1);
 
   useEffect(() => {
     void load();
@@ -137,6 +141,20 @@ export function AdminMembers() {
     return members.filter((m) => [m.name, m.email, m.phoneE164].some((v) => v?.toLowerCase().includes(q)));
   }, [members, search]);
 
+  // A new search changes what "page 1" means, so jump back to the top.
+  useEffect(() => setPage(1), [search]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  // Derived, not stored: after a delete shrinks the list the old page number
+  // may overshoot, so clamp on every render rather than tracking it separately.
+  const currentPage = Math.min(page, totalPages);
+  const paged = useMemo(
+    () => filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE),
+    [filtered, currentPage],
+  );
+  const firstShown = filtered.length ? (currentPage - 1) * PAGE_SIZE + 1 : 0;
+  const lastShown = Math.min(currentPage * PAGE_SIZE, filtered.length);
+
   return (
     <div className="stack">
       <div className="panel-head">
@@ -213,30 +231,61 @@ export function AdminMembers() {
       ) : !filtered.length ? (
         <p className="empty">{search ? 'Nothing matches that search.' : 'No members yet.'}</p>
       ) : (
-        <table className="table">
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>Email</th>
-              <th>Phone</th>
-              <th />
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.map((m) => (
-              <tr key={m.id}>
-                <td>{m.name}</td>
-                <td className="muted small">{m.email ?? '—'}</td>
-                <td className="muted small">{m.phoneE164 ? formatPhone(m.phoneE164) : '—'}</td>
-                <td>
-                  <button className="link danger" onClick={() => onDelete(m)}>
-                    Remove
-                  </button>
-                </td>
+        <>
+          <table className="table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Phone</th>
+                <th />
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {paged.map((m) => (
+                <tr key={m.id}>
+                  <td>{m.name}</td>
+                  <td className="muted small">{m.email ?? '—'}</td>
+                  <td className="muted small">{m.phoneE164 ? formatPhone(m.phoneE164) : '—'}</td>
+                  <td>
+                    <button className="link danger" onClick={() => onDelete(m)}>
+                      Remove
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+
+          <div className="row tight pagination">
+            <span className="muted small">
+              Showing {firstShown}–{lastShown} of {filtered.length}
+            </span>
+            {totalPages > 1 && (
+              <div className="pager">
+                <button
+                  className="secondary icon"
+                  onClick={() => setPage(currentPage - 1)}
+                  disabled={currentPage <= 1}
+                  aria-label="Previous page"
+                >
+                  ‹
+                </button>
+                <span className="period-label">
+                  Page {currentPage} of {totalPages}
+                </span>
+                <button
+                  className="secondary icon"
+                  onClick={() => setPage(currentPage + 1)}
+                  disabled={currentPage >= totalPages}
+                  aria-label="Next page"
+                >
+                  ›
+                </button>
+              </div>
+            )}
+          </div>
+        </>
       )}
     </div>
   );

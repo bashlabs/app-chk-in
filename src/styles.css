@@ -567,6 +567,14 @@ fieldset:disabled {
   font-size: 0.9375rem;
 }
 
+.pagination {
+  justify-content: space-between;
+  margin-top: 4px;
+}
+.pagination .pager {
+  flex: 0 0 auto;
+}
+
 button.icon {
   min-height: 36px;
   padding: 4px 12px;

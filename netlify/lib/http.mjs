@@ -17,9 +17,23 @@ const JSON_HEADERS = {
 export const json = (body, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: JSON_HEADERS });
 
+// A warm Netlify instance reuses this across invocations, so the access config
+// — which changes rarely — isn't re-read from Firestore on every check-in. That
+// read was the single biggest per-request Firestore cost on a busy Sunday. The
+// short TTL is the trade: an admin opening or closing the window (or an
+// emergency "close now") takes up to this long to reach already-warm instances.
+const CONFIG_TTL_MS = 30_000;
+/** @type {{ value: import('../../shared/access.js').AccessConfig, at: number } | null} */
+let configCache = null;
+
 export async function loadConfig() {
+  const now = Date.now();
+  if (configCache && now - configCache.at < CONFIG_TTL_MS) return configCache.value;
+
   const snap = await db.doc(ACCESS_CONFIG_DOC).get();
-  return resolveConfig(snap.exists ? snap.data() : undefined);
+  const value = resolveConfig(snap.exists ? snap.data() : undefined);
+  configCache = { value, at: now };
+  return value;
 }
 
 /**
@@ -35,10 +49,21 @@ export function clientIp(req, context) {
   );
 }
 
-const RATE_WINDOW_MS = 10 * 60 * 1000;
+/** A malformed env value falls back to the default rather than becoming NaN —
+ *  `count >= NaN` is always false, which would silently disable the limiter. */
+function posInt(raw, fallback) {
+  const n = Number(raw);
+  return Number.isInteger(n) && n > 0 ? n : fallback;
+}
+
+const RATE_WINDOW_MS = posInt(process.env.RATE_LIMIT_WINDOW_MINUTES, 10) * 60 * 1000;
 /** Failed lookups per window, per IP. Generous: unregistered visitors on the
- *  church wifi legitimately miss, and they share that IP with everyone else. */
-const RATE_MAX = 20;
+ *  church wifi legitimately miss, and they share that IP with everyone else —
+ *  so on a busy Sunday a wave of not-yet-registered guests all count against the
+ *  one shared IP. Env-tunable (`RATE_LIMIT_MAX_FAILURES`) so that ceiling can be
+ *  raised for a service without a redeploy. Only misses count; real members who
+ *  succeed never do, so the crowd itself never trips it. */
+const RATE_MAX = posInt(process.env.RATE_LIMIT_MAX_FAILURES, 50);
 
 /**
  * Only *failed* lookups are counted — never successful check-ins.

@@ -12,7 +12,10 @@ service cloud.firestore {
     }
     match /church-attendance-records/{recordId} {
       allow read: if isChurchAttendanceAdmin();
-      allow write: if false;
+      // Public check-ins are written server-side with the Admin SDK, which
+      // bypasses these rules. Admins may also record a check-in by hand (e.g.
+      // for someone present while the public window is closed), so allow them.
+      allow write: if isChurchAttendanceAdmin();
     }
     match /church-attendance-config/{docId} {
       allow read, write: if isChurchAttendanceAdmin();

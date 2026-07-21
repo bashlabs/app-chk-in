@@ -1,7 +1,7 @@
 {
-  "$comment": "Firestore rules only. The app is hosted on Netlify and its API runs as Netlify Functions, so there is no hosting or functions config here — and no Blaze plan needed. Deploy with: npm run deploy:rules",
-  "firestore": {
-    "rules": "firestore.rules",
-    "indexes": "firestore.indexes.json"
+  "emulators": {
+    "singleProjectMode": true,
+    "firestore": { "port": 8080 },
+    "ui": { "enabled": false }
   }
 }

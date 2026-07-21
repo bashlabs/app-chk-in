@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { collection, getDocs, orderBy, query, where } from 'firebase/firestore';
+import { collection, doc, getDocs, orderBy, query, serverTimestamp, setDoc, where } from 'firebase/firestore';
 
 import { db } from '../firebase';
 import { COLLECTIONS } from '../../shared/collections.js';
@@ -43,6 +43,7 @@ export function AdminAttendance() {
   const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState<'absent' | 'present'>('absent');
   const [search, setSearch] = useState('');
+  const [checkingIn, setCheckingIn] = useState<string | null>(null);
 
   const range = useMemo(() => rangeFor(mode, anchor), [mode, anchor]);
 
@@ -121,6 +122,37 @@ export function AdminAttendance() {
   const multi = mode !== 'day';
   // Don't let an admin page forward past today into empty periods.
   const atPresent = rangeFor(mode, anchor).end >= rangeFor(mode, today()).end;
+
+  // Record a check-in by hand — for someone who's here while the public window
+  // is closed. Writes straight to Firestore (admins are trusted), for the day
+  // being viewed, in the same shape the public endpoint writes.
+  async function checkInMember(m: Member) {
+    setCheckingIn(m.id);
+    setError(null);
+    try {
+      // One doc per member per service date — same id the server uses, so a
+      // later public check-in on the same day is a no-op rather than a dupe.
+      await setDoc(doc(db, COLLECTIONS.attendance, `${anchor}_${m.id}`), {
+        memberId: m.id,
+        name: m.name,
+        serviceDate: anchor,
+        checkedInAt: serverTimestamp(),
+        via: 'admin',
+      });
+      // Move them into the present list without a full reload.
+      setRecords((prev) => {
+        const next = new Map(prev);
+        const entry = next.get(m.id) ?? { dates: [], firstTime: null };
+        const dates = entry.dates.includes(anchor) ? entry.dates : [...entry.dates, anchor].sort();
+        next.set(m.id, { dates, firstTime: entry.firstTime ?? new Date() });
+        return next;
+      });
+    } catch (err) {
+      setError(errorMessage(err));
+    } finally {
+      setCheckingIn(null);
+    }
+  }
 
   return (
     <div className="stack">
@@ -231,7 +263,7 @@ export function AdminAttendance() {
             <tr>
               <th>Name</th>
               <th>Contact</th>
-              {multi ? <th>Attended</th> : tab === 'present' ? <th>Time</th> : null}
+              {multi ? <th>Attended</th> : tab === 'present' ? <th>Time</th> : <th />}
             </tr>
           </thead>
           <tbody>
@@ -250,7 +282,17 @@ export function AdminAttendance() {
                       minute: '2-digit',
                     }) ?? '—'}
                   </td>
-                ) : null}
+                ) : (
+                  <td>
+                    <button
+                      className="link"
+                      onClick={() => checkInMember(m)}
+                      disabled={checkingIn === m.id}
+                    >
+                      {checkingIn === m.id ? 'Checking in…' : 'Check in'}
+                    </button>
+                  </td>
+                )}
               </tr>
             ))}
           </tbody>
