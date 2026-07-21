@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
 
 import { normalizeIdentifier } from '../../shared/identity.js';
 import {
@@ -11,7 +10,6 @@ import {
   type CheckInResult,
 } from '../lib/api';
 import { recaptchaToken } from '../lib/recaptcha';
-import { Cross } from '../components/Cross';
 import { ClosedNotice } from '../components/ClosedNotice';
 
 type View =
@@ -87,7 +85,14 @@ export function CheckIn() {
     <main className="page">
       <div className="card">
         <header className="card-head">
-          <Cross />
+          <img
+            className="brand-logo"
+            src="/logo-crest.png"
+            alt="The Covenant Nation, Abule Egba"
+            width={76}
+            height={76}
+          />
+          <p className="church-name">The Covenant Nation · Abule Egba</p>
           <h1>Service Check-In</h1>
           {status?.open && <p className="sub">{formatServiceDate(status.serviceDate)}</p>}
         </header>
@@ -141,10 +146,6 @@ export function CheckIn() {
 
         {view.kind === 'result' && <Result result={view.result} onDone={reset} />}
       </div>
-
-      <Link to="/admin" className="admin-link">
-        Admin
-      </Link>
     </main>
   );
 }

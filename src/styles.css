@@ -1,6 +1,6 @@
 :root {
-  --brand: #4f46e5;
-  --brand-dark: #4338ca;
+  --brand: #c2410c;
+  --brand-dark: #9a3412;
   --ok: #059669;
   --ok-bg: #ecfdf5;
   --warn: #b45309;
@@ -84,6 +84,21 @@ h2 {
 .cross {
   color: var(--brand);
   margin-bottom: 8px;
+}
+
+.brand-logo {
+  display: block;
+  width: 76px;
+  height: auto;
+  margin: 0 auto 8px;
+}
+
+.church-name {
+  margin: 0 0 2px;
+  color: var(--brand);
+  font-weight: 700;
+  font-size: 0.9rem;
+  letter-spacing: 0.01em;
 }
 
 .card-head .sub {
