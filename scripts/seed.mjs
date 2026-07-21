@@ -21,7 +21,7 @@ import { normalizeEmail, normalizePhone } from '../shared/identity.js';
 
 const demo = process.argv.includes('--demo');
 
-confirmLive();
+confirmLive()
 
 await db.doc(ACCESS_CONFIG_DOC).set(DEFAULT_CONFIG, { merge: true });
 console.log(`✓ ${ACCESS_CONFIG_DOC} seeded on ${target} (open on Sunday, Africa/Lagos)`);
