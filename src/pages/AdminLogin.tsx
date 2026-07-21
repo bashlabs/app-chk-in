@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 
 import { auth } from '../firebase';
-import { Cross } from '../components/Cross';
 
 const MESSAGES: Record<string, string> = {
   'auth/invalid-credential': 'Wrong email or password.',
@@ -37,7 +36,13 @@ export function AdminLogin() {
     <main className="page">
       <div className="card">
         <header className="card-head">
-          <Cross />
+          <img
+            className="brand-logo"
+            src="/logo-crest.png"
+            alt="The Covenant Nation, Abule Egba"
+            width={76}
+            height={76}
+          />
           <h1>Admin sign in</h1>
         </header>
 
