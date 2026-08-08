@@ -12,6 +12,8 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 const ROUTES: Record<string, string> = {
   '/api/access-status': '/netlify/functions/access-status.mjs',
   '/api/check-in': '/netlify/functions/check-in.mjs',
+  '/api/register': '/netlify/functions/register.mjs',
+  '/api/dispute': '/netlify/functions/dispute.mjs',
 };
 
 /** Node's IncomingMessage -> a Web Request, the shape the handlers expect. */

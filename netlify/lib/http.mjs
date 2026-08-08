@@ -22,7 +22,10 @@ export const json = (body, status = 200) =>
 // read was the single biggest per-request Firestore cost on a busy Sunday. The
 // short TTL is the trade: an admin opening or closing the window (or an
 // emergency "close now") takes up to this long to reach already-warm instances.
-const CONFIG_TTL_MS = 30_000;
+// Env-tunable so the integration tests can set it to 0 and flip the window
+// open and closed within one run, instead of the suite silently asserting
+// against a cached config.
+const CONFIG_TTL_MS = Number(process.env.CONFIG_CACHE_MS ?? 30_000);
 /** @type {{ value: import('../../shared/access.js').AccessConfig, at: number } | null} */
 let configCache = null;
 
@@ -83,29 +86,43 @@ const RATE_MAX = posInt(process.env.RATE_LIMIT_MAX_FAILURES, 50);
  * know. Discovering members is the thing this has to make expensive.
  */
 
-/** Identify a caller without storing their address: an IP is personal data. */
-const keyFor = (ip) => createHash('sha256').update(ip).digest('hex').slice(0, 32);
+/**
+ * Documents a member can create for themselves per window, per IP.
+ *
+ * A separate, much smaller budget than the failure limiter, because the thing
+ * being metered is different: a miss costs a read, a registration costs a
+ * permanent row in the congregation directory. Kept per-IP and generous enough
+ * for a genuine rush of newcomers on one church-wifi address, and env-tunable
+ * (`PUBLIC_WRITE_MAX`) so a big Sunday can raise it without a redeploy.
+ *
+ * Registrations are keyed by phone number, so a person resubmitting overwrites
+ * their own document rather than adding another — this ceiling exists for
+ * someone walking the number space, not for the crowd.
+ */
+const PUBLIC_WRITE_MAX = posInt(process.env.PUBLIC_WRITE_MAX, 25);
 
-const refFor = (ip) => db.collection(COLLECTIONS.rateLimits).doc(keyFor(ip));
+/** Identify a caller without storing their address: an IP is personal data. */
+const keyFor = (ip, bucket) =>
+  (bucket ? `${bucket}_` : '') + createHash('sha256').update(ip).digest('hex').slice(0, 32);
+
+const refFor = (ip, bucket) => db.collection(COLLECTIONS.rateLimits).doc(keyFor(ip, bucket));
 
 const windowLive = (data, now) => data && now - data.windowStart <= RATE_WINDOW_MS;
 
-/** Read-only: has this IP already spent its budget of failures? */
-export async function isRateLimited(ip) {
+async function limited(ip, bucket, max) {
   if (!ip) return false;
 
-  const snap = await refFor(ip).get();
+  const snap = await refFor(ip, bucket).get();
   if (!snap.exists) return false;
 
   const data = snap.data();
-  return windowLive(data, Date.now()) && data.count >= RATE_MAX;
+  return windowLive(data, Date.now()) && data.count >= max;
 }
 
-/** Count one failed lookup against this IP. */
-export async function recordFailedAttempt(ip) {
+async function count(ip, bucket) {
   if (!ip) return;
 
-  const ref = refFor(ip);
+  const ref = refFor(ip, bucket);
 
   // A transaction, so two simultaneous misses can't both read the same count
   // and write the same increment — the exact concurrency this guards against.
@@ -128,6 +145,18 @@ export async function recordFailedAttempt(ip) {
     tx.update(ref, { count: FieldValue.increment(1) });
   });
 }
+
+/** Read-only: has this IP already spent its budget of failures? */
+export const isRateLimited = (ip) => limited(ip, null, RATE_MAX);
+
+/** Count one failed lookup against this IP. */
+export const recordFailedAttempt = (ip) => count(ip, null);
+
+/** Read-only: has this IP already spent its budget of public writes? */
+export const isPublicWriteLimited = (ip) => limited(ip, 'w', PUBLIC_WRITE_MAX);
+
+/** Count one self-registration or dispute against this IP. */
+export const recordPublicWrite = (ip) => count(ip, 'w');
 
 /**
  * Optional reCAPTCHA v3 check.

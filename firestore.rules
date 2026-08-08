@@ -27,6 +27,11 @@ service cloud.firestore {
     match /church-attendance-rate-limits/{key} {
       allow read, write: if false;
     }
+    match /church-attendance-disputes/{key} {
+      // "That isn't my name" reports. Written server-side with the Admin SDK,
+      // which bypasses these rules; admins read them and mark them resolved.
+      allow read, write: if isChurchAttendanceAdmin();
+    }
 
     // ← your other app's existing rules stay here, untouched
 

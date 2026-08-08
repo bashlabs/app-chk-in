@@ -6,6 +6,7 @@ dev-dist/
 .env
 .env.local
 *serviceAccount*.json
+*service-account*.json
 
 .netlify/
 .firebase/

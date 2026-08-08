@@ -16,8 +16,8 @@
  * this only from lazily-loaded admin code.
  */
 import { initializeApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+import { connectAuthEmulator, getAuth } from 'firebase/auth';
+import { connectFirestoreEmulator, getFirestore } from 'firebase/firestore';
 
 const env = import.meta.env;
 
@@ -32,3 +32,16 @@ export const app = initializeApp({
 
 export const auth = getAuth(app);
 export const db = getFirestore(app);
+
+// `npm run dev:emulator` sets this so the admin screens work against the local
+// emulator instead of the real congregation data — editing and removing members
+// are destructive, and there was no way to rehearse them safely.
+//
+// Vite inlines the literal at build time, so a production bundle contains
+// `if (false)` and drops the branch entirely.
+if (import.meta.env.VITE_USE_EMULATORS === 'true') {
+  connectAuthEmulator(auth, `http://localhost:${env.VITE_AUTH_EMULATOR_PORT ?? 9099}`, {
+    disableWarnings: true,
+  });
+  connectFirestoreEmulator(db, 'localhost', Number(env.VITE_FIRESTORE_EMULATOR_PORT ?? 8088));
+}

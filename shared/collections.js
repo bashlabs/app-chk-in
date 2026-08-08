@@ -24,6 +24,8 @@ export const COLLECTIONS = {
   admins: `${PREFIX}-admins`,
   /** Hashed-IP throttle counters. */
   rateLimits: `${PREFIX}-rate-limits`,
+  /** "That isn't my name" reports from the check-in screen. Never auto-applied. */
+  disputes: `${PREFIX}-disputes`,
 };
 
 /** The one config document. */
