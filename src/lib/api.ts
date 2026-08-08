@@ -26,6 +26,8 @@ export type CheckInResult =
       name: string | null;
       serviceDate: string;
       message: string;
+      /** Present only on /api/register: true when this created the member. */
+      created?: boolean;
     };
 
 /** An error the server described well enough to show the user as-is. */
@@ -75,6 +77,22 @@ export const checkIn = (identifier: string, recaptchaToken?: string) =>
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ identifier, recaptchaToken }),
+  });
+
+/** Register someone who isn't on file yet, and check them in in the same step. */
+export const register = (identifier: string, name: string, recaptchaToken?: string) =>
+  request<CheckInResult>('/api/register', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ identifier, name, recaptchaToken }),
+  });
+
+/** "That isn't my name." Recorded for an admin; never applied automatically. */
+export const reportWrongName = (identifier: string, claimedName: string, recaptchaToken?: string) =>
+  request<{ recorded: true; message: string }>('/api/dispute', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ identifier, claimedName, recaptchaToken }),
   });
 
 export function errorMessage(err: unknown): string {

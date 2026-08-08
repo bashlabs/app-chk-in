@@ -8,11 +8,10 @@
  * it must not become a way to test whether a given number is on file beyond
  * the yes/no the rate limiter allows.
  */
-import { FieldValue } from 'firebase-admin/firestore';
-
 import { evaluateAccess } from '../../shared/access.js';
 import { normalizeIdentifier } from '../../shared/identity.js';
 import { db } from '../lib/firebase.mjs';
+import { recordAttendance } from '../lib/attendance.mjs';
 import {
   clientIp,
   isRateLimited,
@@ -83,26 +82,12 @@ export default async (req, context) => {
   // congregation checking in from one wifi IP must never throttle itself.
 
   const member = found.docs[0];
-  const ref = db.doc(`${COLLECTIONS.attendance}/${access.serviceDate}_${member.id}`);
 
-  // One row per member per service date, so a double-tap doesn't double-count.
-  const alreadyCheckedIn = await db.runTransaction(async (tx) => {
-    const existing = await tx.get(ref);
-    if (existing.exists) return true;
-
-    tx.set(ref, {
-      memberId: member.id,
-      name: member.get('name') ?? null,
-      serviceDate: access.serviceDate,
-      checkedInAt: FieldValue.serverTimestamp(),
-      via: identity.type,
-    });
-
-    // Deliberately only one write per check-in. A `lastCheckedInAt` on the
-    // member doc used to live here, but nothing read it and this collection
-    // already answers "when did they last come" — it was doubling the write
-    // cost of every check-in, which is what the free tier meters.
-    return false;
+  const alreadyCheckedIn = await recordAttendance({
+    serviceDate: access.serviceDate,
+    memberId: member.id,
+    name: member.get('name') ?? null,
+    via: identity.type,
   });
 
   return json({

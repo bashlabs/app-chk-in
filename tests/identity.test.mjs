@@ -1,7 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { normalizeIdentifier, normalizePhone, formatPhone } from '../shared/identity.js';
+import {
+  formatPhone,
+  memberDocId,
+  normalizeIdentifier,
+  normalizeName,
+  normalizePhone,
+} from '../shared/identity.js';
 
 test('accepts every Nigerian format for the same number', () => {
   const expected = '+2347031234567';
@@ -54,4 +60,51 @@ test('ignores non-string input', () => {
 test('formats for display', () => {
   assert.equal(formatPhone('+2348031234567'), '+234 803 123 4567');
   assert.equal(formatPhone('not-a-number'), 'not-a-number');
+});
+
+// --------------------------------------------------- deterministic member ids
+
+test('a member id is the phone digits, matching the migration script', () => {
+  assert.equal(memberDocId({ type: 'phone', value: '+2348031234567' }), '2348031234567');
+});
+
+test('every format of one number lands on the same document id', () => {
+  const ids = ['08031234567', '+234 803 123 4567', '2348031234567', '8031234567'].map((raw) =>
+    memberDocId(normalizeIdentifier(raw)),
+  );
+  assert.equal(new Set(ids).size, 1, 'one person must only ever occupy one document');
+});
+
+test('email ids are prefixed so an all-digit local part cannot collide with a phone', () => {
+  assert.equal(memberDocId({ type: 'email', value: 'ada@example.com' }), 'e-ada@example.com');
+  assert.notEqual(
+    memberDocId({ type: 'email', value: '2348031234567@example.com' }),
+    memberDocId({ type: 'phone', value: '+2348031234567' }),
+  );
+});
+
+// -------------------------------------------------------------- name cleaning
+
+test('strips the bidi marks that came through the spreadsheet import', () => {
+  assert.equal(normalizeName('\u200eEziukwu dikachi Stanley'), 'Eziukwu dikachi Stanley');
+  assert.equal(normalizeName('Lanre\u202a Kola-David'), 'Lanre Kola-David');
+});
+
+test('collapses whitespace and trims', () => {
+  assert.equal(normalizeName('  Ada   Obi \n'), 'Ada Obi');
+});
+
+test('rejects input that is not a name', () => {
+  for (const input of ['', ' ', 'a', '...', '12345', '\u200e', null, undefined, 42]) {
+    assert.equal(normalizeName(input), null, `should reject ${JSON.stringify(input)}`);
+  }
+});
+
+test('caps the length, so a name cannot become a payload', () => {
+  assert.equal(normalizeName('a'.repeat(81)), null);
+  assert.equal(normalizeName('a'.repeat(80)), 'a'.repeat(80));
+});
+
+test('keeps accented and non-Latin names intact', () => {
+  assert.equal(normalizeName('Olúwáṣeun Adéyẹmí'), 'Olúwáṣeun Adéyẹmí');
 });

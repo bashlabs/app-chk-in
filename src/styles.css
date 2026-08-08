@@ -234,6 +234,18 @@ button:focus-visible {
   margin: 0 0 8px;
 }
 
+/* The name field shown when a number isn't on file, and when someone says the
+   name we greeted them with isn't theirs. Sits inside .state, which centres its
+   children — the form needs to go full width and left-align its label. */
+.register {
+  width: 100%;
+  text-align: left;
+  margin-top: 4px;
+}
+.register .hint {
+  margin-bottom: 12px;
+}
+
 .state .secondary {
   margin-top: 20px;
 }
@@ -445,6 +457,18 @@ fieldset:disabled {
 }
 .row.tight input {
   flex: 1;
+}
+/* .primary carries a top margin and extra height because it usually *ends* a
+   stacked form. Sat next to a Cancel button it just drops out of line with it,
+   so in a button row the two match. */
+.row.tight > .primary {
+  margin-top: 0;
+  min-height: 44px;
+}
+/* ...and the gap that margin used to provide moves to the row, so the pair
+   stays clear of whatever is above it — hint text or an error. */
+.form-actions {
+  margin-top: 20px;
 }
 .row label {
   margin-top: 0;
@@ -685,11 +709,41 @@ button.icon {
 }
 
 .add-member,
-.import {
+.import,
+.panel {
   background: #fff;
   border: 1px solid var(--line);
   border-radius: var(--radius);
   padding: 20px;
+}
+
+/* Name corrections sent from the check-in screen: an inbox, so it has to read
+   as something waiting on the office rather than another table on the page. */
+.panel.warn-panel {
+  border-color: var(--warn, #d97706);
+  background: #fffbeb;
+}
+.panel > h3,
+.panel > summary {
+  margin: 0 0 4px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.panel > h3 {
+  cursor: default;
+}
+.panel .table {
+  margin-top: 12px;
+}
+
+/* Row actions. Deliberately not `.row`, which would make the <td> itself a
+   flex container and take it out of the table's border-collapse. */
+.table .actions {
+  white-space: nowrap;
+}
+.table .actions button + button {
+  margin-left: 12px;
 }
 .add-member .primary {
   width: auto;
