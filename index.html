@@ -11,6 +11,40 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="Check-In" />
     <title>Church Attendance Check-In</title>
+
+    <script>
+      /*
+       * This app has been replaced by the foldmetric check-in project. `/` is
+       * redirected there by Netlify (see netlify.toml), which handles anyone whose
+       * browser actually reaches the network.
+       *
+       * This is the other half. Returning members are served this page by a service
+       * worker that cached it on a previous Sunday, so their browser never asks
+       * Netlify and never sees that redirect. Doing it here too means the handover
+       * happens from the cached copy as well.
+       *
+       * Inline and in the head, ahead of the module bundle, so it fires before any
+       * of the app is fetched and nobody watches the retired form appear first.
+       */
+      (function () {
+        // The landing page only. /admin still runs here, so the office can read
+        // and export the old attendance records.
+        if (location.pathname !== '/') return;
+
+        // Never bounce a development machine: loopback, any private LAN address
+        // (`--host` plus a phone on wifi arrives as 192.168.x.x), any .local name,
+        // and Netlify deploy previews, which are always `x--site.netlify.app`.
+        var host = location.hostname;
+        if (/^(localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\])$/.test(host)) return;
+        if (/^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(host)) return;
+        if (/\.(local|localhost)$/.test(host)) return;
+        if (host.indexOf('--') !== -1) return;
+
+        // replace() rather than assigning href: this address never enters history,
+        // so Back doesn't drop the member onto the retired app.
+        location.replace('https://tcn-abule-egba.foldmetric.com/');
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
