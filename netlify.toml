@@ -13,6 +13,22 @@
   # way to keep it intact.
   external_node_modules = ["firebase-admin"]
 
+# This project has been superseded by the foldmetric check-in app. The printed QR
+# codes and the cards on the welcome desk still point here, so the landing page
+# hands members over rather than showing them a retired service.
+#
+# 302, not 301: a permanent redirect is cached by the browser forever, and there
+# would be no way to call it back if the new address ever changed. Switch this to
+# 301 once foldmetric has been live for a few Sundays.
+#
+# It must come before the SPA fallback below — Netlify matches in order — and
+# `force` is required because `/` would otherwise be served by index.html.
+[[redirects]]
+  from = "/"
+  to = "https://tcn-abule-egba.foldmetric.com/"
+  status = 302
+  force = true
+
 # The functions declare their own routes via `export const config = { path }`,
 # so only the SPA fallback is needed here. It must come last — Netlify matches
 # redirects in order, and /api/* is served by the functions above it.

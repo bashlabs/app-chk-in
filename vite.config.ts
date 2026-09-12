@@ -33,6 +33,18 @@ export default defineConfig(({ mode }) => {
     react(),
     netlifyFunctionsDev(),
     VitePWA({
+      /*
+       * This app has been replaced by the foldmetric check-in project, and `/` now
+       * redirects there (see netlify.toml).
+       *
+       * A redirect alone would not reach the people it most needs to. Returning
+       * members have a service worker installed from previous Sundays, and it
+       * precaches index.html — so it answers their navigation from cache and the
+       * redirect is never requested. `selfDestroying` replaces sw.js with one that
+       * unregisters itself and empties those caches, which is what lets the
+       * congregation's phones reach the new address at all.
+       */
+      selfDestroying: true,
       registerType: 'autoUpdate',
       includeAssets: ['favicon.png', 'apple-touch-icon.png'],
       manifest: {
